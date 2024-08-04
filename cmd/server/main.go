@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"os"
+	"path/filepath"
 
 	"github.com/appyzdl/Netrunner/pkg/http"
 	"github.com/appyzdl/Netrunner/pkg/http/status"
@@ -12,10 +14,22 @@ import (
 func main() {
 	router := http.NewRouter()
 
+	// Add middleware
+	router.Use(http.LoggingMiddleware)
+
 	// Add routes
 	router.AddRoute("GET", "/", handleRoot)
 	router.AddRoute("GET", "/hello", handleHello)
 	router.AddRoute("POST", "/echo", handleEcho)
+
+	// Add static file handler
+	execPath, _ := os.Executable()
+	execDir := filepath.Dir(execPath)
+	publicPath := filepath.Join(execDir, "public")
+	staticHandler := http.StaticFileHandler(publicPath)
+	router.AddRoute("GET", "/static/", staticHandler)
+
+	fmt.Printf("Serving static files from: %s\n", publicPath) // Debug log
 
 	startServer(":8080", router)
 }

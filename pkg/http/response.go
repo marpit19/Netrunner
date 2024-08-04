@@ -74,3 +74,12 @@ func FormatResponse(r *Response) []byte {
 
 	return responseBytes
 }
+
+func InternalServerErrorResponse() *Response {
+	resp := NewResponse()
+	resp.StatusCode = status.InternalServerError
+	resp.StatusText = StatusText(status.InternalServerError)
+	resp.SetHeader("Content-Type", "text/plain")
+	resp.Body = []byte("500 Internal Server Error")
+	return resp
+}

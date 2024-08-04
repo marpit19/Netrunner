@@ -1,15 +1,24 @@
 package http
 
-type HandlerFunc func(*Request) *Response
+type (
+	HandlerFunc    func(*Request) *Response
+	MiddlewareFunc func(HandlerFunc) HandlerFunc
+)
 
 type Router struct {
-	routes map[string]map[string]HandlerFunc
+	routes     map[string]map[string]HandlerFunc
+	middleware []MiddlewareFunc
 }
 
 func NewRouter() *Router {
 	return &Router{
-		routes: make(map[string]map[string]HandlerFunc),
+		routes:     make(map[string]map[string]HandlerFunc),
+		middleware: []MiddlewareFunc{},
 	}
+}
+
+func (r *Router) Use(mw MiddlewareFunc) {
+	r.middleware = append(r.middleware, mw)
 }
 
 func (r *Router) AddRoute(method, path string, handler HandlerFunc) {
@@ -22,6 +31,10 @@ func (r *Router) AddRoute(method, path string, handler HandlerFunc) {
 func (r *Router) HandleRequest(req *Request) *Response {
 	if handlers, ok := r.routes[req.Method]; ok {
 		if handler, ok := handlers[req.Path]; ok {
+			// middleware
+			for i := len(r.middleware) - 1; i >= 0; i-- {
+				handler = r.middleware[i](handler)
+			}
 			return handler(req)
 		}
 	}
