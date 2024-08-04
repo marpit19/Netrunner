@@ -12,6 +12,11 @@ type (
 	MiddlewareFunc func(HandlerFunc) HandlerFunc
 )
 
+type Route struct {
+	Method string
+	PathPattern string
+}
+
 type Router struct {
 	routes     map[string]map[string]HandlerFunc
 	middleware []MiddlewareFunc
