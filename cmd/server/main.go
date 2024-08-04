@@ -10,14 +10,25 @@ import (
 )
 
 func main() {
-	listener, err := net.Listen("tcp", ":8080")
+	router := http.NewRouter()
+
+	// Add routes
+	router.AddRoute("GET", "/", handleRoot)
+	router.AddRoute("GET", "/hello", handleHello)
+	router.AddRoute("POST", "/echo", handleEcho)
+
+	startServer(":8080", router)
+}
+
+func startServer(address string, router *http.Router) {
+	listener, err := net.Listen("tcp", address)
 	if err != nil {
 		fmt.Printf("Failed to start server: %v\n", err)
 		return
 	}
 	defer listener.Close()
 
-	fmt.Println("Server listening on :8080")
+	fmt.Printf("Server listening on %s\n", address)
 
 	for {
 		conn, err := listener.Accept()
@@ -25,14 +36,13 @@ func main() {
 			fmt.Printf("Failed to accept connection: %v\n", err)
 			continue
 		}
-		go handleConnection(conn)
+		go handleConnection(conn, router)
 	}
 }
 
-func handleConnection(conn net.Conn) {
+func handleConnection(conn net.Conn, router *http.Router) {
 	defer conn.Close()
 
-	// Read the incoming HTTP request
 	buffer := make([]byte, 1024)
 	n, err := conn.Read(buffer)
 	if err != nil && err != io.EOF {
@@ -40,7 +50,6 @@ func handleConnection(conn net.Conn) {
 		return
 	}
 
-	// Parse the request (we'll assume it's valid for now)
 	request, err := http.ParseRequest(buffer[:n])
 	if err != nil {
 		fmt.Printf("Error parsing request: %v\n", err)
@@ -48,15 +57,8 @@ func handleConnection(conn net.Conn) {
 		return
 	}
 
-	// For now, we'll just echo back some information about the request
-	response := http.NewResponse()
-	response.SetStatus(status.OK)
-	response.SetHeader("Content-Type", "text/plain")
-	responseBody := fmt.Sprintf("Received request:\nMethod: %s\nPath: %s\nProtocol: %s\n",
-		request.Method, request.Path, request.Version)
-	response.SetBody([]byte(responseBody))
-
-	_, err = conn.Write(response.Write())
+	response := router.HandleRequest(request)
+	_, err = conn.Write(http.FormatResponse(response))
 	if err != nil {
 		fmt.Printf("Error writing response: %v\n", err)
 	}
@@ -64,12 +66,39 @@ func handleConnection(conn net.Conn) {
 
 func sendErrorResponse(conn net.Conn, statusCode int) {
 	response := http.NewResponse()
-	response.SetStatus(statusCode)
-	response.SetHeader("Content-Type", "text/plain")
-	response.SetBody([]byte(status.Text(statusCode)))
+	response.StatusCode = statusCode
+	response.StatusText = http.StatusText(statusCode)
+	response.SetBody([]byte(http.StatusText(statusCode)))
 
-	_, err := conn.Write(response.Write())
+	_, err := conn.Write(http.FormatResponse(response))
 	if err != nil {
 		fmt.Printf("Error writing error response: %v\n", err)
 	}
+}
+
+// Handler functions
+func handleRoot(req *http.Request) *http.Response {
+	resp := http.NewResponse()
+	resp.StatusCode = 200
+	resp.StatusText = "OK"
+	resp.SetBody([]byte("Welcome to Netrunner!"))
+	return resp
+}
+
+func handleHello(req *http.Request) *http.Response {
+	resp := http.NewResponse()
+	resp.StatusCode = 200
+	resp.StatusText = "OK"
+	resp.SetBody([]byte("Hello, Netrunner!"))
+	return resp
+}
+
+func handleEcho(req *http.Request) *http.Response {
+    resp := http.NewResponse()
+    resp.StatusCode = 200
+    resp.StatusText = "OK"
+    resp.SetHeader("Content-Type", "text/plain")
+    resp.SetHeader("Content-Length", fmt.Sprintf("%d", len(req.Body)))
+    resp.Body = req.Body
+    return resp
 }

@@ -48,3 +48,29 @@ func (r *Response) Write() []byte {
 	builder.WriteString("\r\n")
 	return append([]byte(builder.String()), r.Body...)
 }
+
+func StatusText(code int) string {
+	return status.Text(code)
+}
+
+func FormatResponse(r *Response) []byte {
+	var builder strings.Builder
+
+	statusLine := fmt.Sprintf("%s %d %s\r\n", r.Version, r.StatusCode, r.StatusText)
+	builder.WriteString(statusLine)
+
+	for key, value := range r.Headers {
+		headerLine := fmt.Sprintf("%s: %s\r\n", key, value)
+		builder.WriteString(headerLine)
+	}
+
+	builder.WriteString("\r\n")
+
+	responseBytes := []byte(builder.String())
+
+	if len(r.Body) > 0 {
+		responseBytes = append(responseBytes, r.Body...)
+	}
+
+	return responseBytes
+}
