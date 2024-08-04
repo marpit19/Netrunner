@@ -94,11 +94,11 @@ func handleHello(req *http.Request) *http.Response {
 }
 
 func handleEcho(req *http.Request) *http.Response {
-    resp := http.NewResponse()
-    resp.StatusCode = 200
-    resp.StatusText = "OK"
-    resp.SetHeader("Content-Type", "text/plain")
-    resp.SetHeader("Content-Length", fmt.Sprintf("%d", len(req.Body)))
-    resp.Body = req.Body
-    return resp
+	resp := http.NewResponse()
+	resp.StatusCode = 200
+	resp.StatusText = "OK"
+	resp.SetHeader("Content-Type", "text/plain")
+	resp.SetHeader("Content-Length", fmt.Sprintf("%d", len(req.Body)))
+	resp.Body = req.Body
+	return resp
 }
