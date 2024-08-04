@@ -116,6 +116,7 @@ func handleHTTPError(conn net.Conn, err *http.HTTPError) {
 	}
 }
 
+/*
 func sendErrorResponse(conn net.Conn, statusCode int) {
 	response := http.NewResponse()
 	response.StatusCode = statusCode
@@ -127,6 +128,7 @@ func sendErrorResponse(conn net.Conn, statusCode int) {
 		fmt.Printf("Error writing error response: %v\n", err)
 	}
 }
+*/
 
 // Handler functions
 func handleRoot(req *http.Request) *http.Response {
