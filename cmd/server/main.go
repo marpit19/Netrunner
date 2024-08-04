@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/tls"
 	"fmt"
 	"io"
 	"net"
@@ -38,7 +39,11 @@ func main() {
 
 	// fmt.Printf("Serving static files from: %s\n", publicPath) // Debug log
 
-	go startServer(":8080", router)
+	// Start HTTP server
+	go startServer("http", ":8080", router)
+
+	// Start HTTPS server
+	go startServer("https", ":8000", router)
 
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGABRT)
@@ -49,8 +54,23 @@ func main() {
 	fmt.Println("Server stopped")
 }
 
-func startServer(address string, router *http.Router) {
-	listener, err := net.Listen("tcp", address)
+func startServer(protocol string, address string, router *http.Router) {
+	var listener net.Listener
+	var err error
+
+	if protocol == "https" {
+		cert, err := tls.LoadX509KeyPair("cert.pem", "key.pem")
+		if err != nil {
+			fmt.Printf("Failed to load TLS certificate: %v\n", err)
+			return
+		}
+
+		tlsConfig := &tls.Config{Certificates: []tls.Certificate{cert}}
+		listener, err = tls.Listen("tcp", address, tlsConfig)
+	} else {
+		listener, err = net.Listen("tcp", address)
+	}
+
 	if err != nil {
 		fmt.Printf("Failed to start server: %v 😭\n", err)
 		return
@@ -82,7 +102,15 @@ func handleConnection(conn net.Conn, router *http.Router) {
 		return
 	}
 
-	request, err := http.ParseRequest(buffer[:n])
+	fmt.Printf("Received data: %s\n", string(buffer[:n])) // Debug print
+
+	var tlsConn *tls.ConnectionState
+	if tlsConnection, ok := conn.(*tls.Conn); ok {
+		state := tlsConnection.ConnectionState()
+		tlsConn = &state
+	}
+
+	request, err := http.ParseRequest(buffer[:n], tlsConn)
 	if err != nil {
 		fmt.Printf("Error parsing request: %v\n", err)
 		handleHTTPError(conn, http.NewHTTPError(status.BadRequest, "Invalid request"))
