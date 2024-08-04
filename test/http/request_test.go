@@ -42,3 +42,30 @@ func TestParseRequest(t *testing.T) {
 		t.Errorf("Expected User-Agent header %s, got %s", expectedUserAgent, request.Headers["User-Agent"])
 	}
 }
+
+func TestParseRequestWithBody(t *testing.T) {
+	rawRequest := "POST /submit HTTP/1.1\r\n" +
+		"Host: www.example.com\r\n" +
+		"Content-Type: application/x-www-form-urlencoded\r\n" +
+		"Content-Length: 27\r\n" +
+		"\r\n" +
+		"username=johndoe&password=123"
+
+	request, err := http.ParseRequest([]byte(rawRequest))
+	if err != nil {
+		t.Fatalf("Failed to parse request: %v", err)
+	}
+
+	if request.Method != "POST" {
+		t.Errorf("Expected method POST, got %s", request.Method)
+	}
+
+	if request.Path != "/submit" {
+		t.Errorf("Expected path /submit, got %s", request.Path)
+	}
+
+	expectedBody := "username=johndoe&password=123"
+	if string(request.Body) != expectedBody {
+		t.Errorf("Expected body %q, got %q", expectedBody, string(request.Body))
+	}
+}
